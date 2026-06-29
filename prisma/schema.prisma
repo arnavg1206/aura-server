@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid()) @db.Uuid
+  appleSubjectId   String?   @map("apple_subject_id")
+  googleSubjectId  String?   @map("google_subject_id")
+  displayName      String    @map("display_name")
+  email            String?   @unique
+  passwordHash     String?   @map("password_hash")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  sessions         SyncedSession[]
+  sentRequests     Friendship[]    @relation("requester")
+  receivedRequests Friendship[]    @relation("receiver")
+
+  @@map("users")
+}
+
+model Friendship {
+  id          String   @id @default(uuid()) @db.Uuid
+  requesterId String   @map("requester_id") @db.Uuid
+  receiverId  String   @map("receiver_id") @db.Uuid
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  requester   User @relation("requester", fields: [requesterId], references: [id])
+  receiver    User @relation("receiver", fields: [receiverId], references: [id])
+
+  @@map("friendships")
+}
+
+model SyncedSession {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  date            DateTime
+  durationSeconds Int      @map("duration_seconds")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user            User @relation(fields: [userId], references: [id])
+
+  @@map("synced_sessions")
+}
