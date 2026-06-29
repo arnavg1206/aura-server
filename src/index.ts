@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { PrismaClient } from '@prisma/client';
 import { authRoutes } from './routes/auth';
 import { sessionRoutes } from './routes/sessions';
@@ -24,6 +25,11 @@ async function connectWithRetry(retries = 5, delayMs = 3000) {
 
 async function start() {
   await connectWithRetry();
+
+  await app.register(rateLimit, {
+    max: 60,
+    timeWindow: '1 minute',
+  });
 
   app.get('/', async () => 'Aura API is running');
 

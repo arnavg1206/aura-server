@@ -5,6 +5,8 @@ import { PrismaClient } from '@prisma/client';
 import { signToken } from '../lib/jwt';
 import { verifyAppleToken } from '../lib/apple';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function tokenResponse(user: { id: string; displayName: string }, token: string) {
   return { token, user: { id: user.id, displayName: user.displayName } };
 }
@@ -25,7 +27,7 @@ export async function authRoutes(app: FastifyInstance, prisma: PrismaClient) {
       let user = await prisma.user.findFirst({ where: { appleSubjectId } });
       if (!user) {
         user = await prisma.user.create({
-          data: { appleSubjectId, displayName: displayName ?? 'Aura User' },
+          data: { appleSubjectId, displayName: displayName?.slice(0, 50) ?? 'Aura User' },
         });
       }
       return tokenResponse(user, signToken(user.id));
@@ -41,9 +43,9 @@ export async function authRoutes(app: FastifyInstance, prisma: PrismaClient) {
 
       let googleSubjectId: string;
       try {
-        const { data } = await axios.get(
-          `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
-        );
+        const { data } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
+          params: { id_token: idToken },
+        });
         if (!clientID || data.aud !== clientID) {
           return reply.code(401).send({ error: 'Invalid Google token audience' });
         }
@@ -55,7 +57,7 @@ export async function authRoutes(app: FastifyInstance, prisma: PrismaClient) {
       let user = await prisma.user.findFirst({ where: { googleSubjectId } });
       if (!user) {
         user = await prisma.user.create({
-          data: { googleSubjectId, displayName: displayName ?? 'Aura User' },
+          data: { googleSubjectId, displayName: displayName?.slice(0, 50) ?? 'Aura User' },
         });
       }
       return tokenResponse(user, signToken(user.id));
@@ -67,16 +69,22 @@ export async function authRoutes(app: FastifyInstance, prisma: PrismaClient) {
     '/auth/register',
     async (req, reply) => {
       const { name, email, password } = req.body;
+      if (!EMAIL_REGEX.test(email)) {
+        return reply.code(400).send({ error: 'Invalid email address' });
+      }
       if (password.length < 8) {
         return reply.code(400).send({ error: 'Password must be at least 8 characters' });
+      }
+      if (!name || name.trim().length === 0 || name.length > 50) {
+        return reply.code(400).send({ error: 'Name must be between 1 and 50 characters' });
       }
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) {
         return reply.code(409).send({ error: 'Email already registered' });
       }
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await bcrypt.hash(password, 12);
       const user = await prisma.user.create({
-        data: { displayName: name, email, passwordHash },
+        data: { displayName: name.trim(), email, passwordHash },
       });
       return reply.code(201).send(tokenResponse(user, signToken(user.id)));
     }

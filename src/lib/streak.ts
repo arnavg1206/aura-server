@@ -16,7 +16,8 @@ export function computeStreak(sessions: SyncedSession[]): number {
     .map(t => new Date(t));
 
   const today = startOfDay(new Date());
-  if (dayDiff(today, uniqueDays[0]) > 1) return 0;
+  // Use abs to handle future-dated sessions (clock skew)
+  if (Math.abs(dayDiff(today, uniqueDays[0])) > 1) return 0;
 
   let streak = 1;
   for (let i = 1; i < uniqueDays.length; i++) {

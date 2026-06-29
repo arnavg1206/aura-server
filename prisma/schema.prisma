@@ -9,9 +9,9 @@ datasource db {
 
 model User {
   id               String    @id @default(uuid()) @db.Uuid
-  appleSubjectId   String?   @map("apple_subject_id")
-  googleSubjectId  String?   @map("google_subject_id")
-  displayName      String    @map("display_name")
+  appleSubjectId   String?   @unique @map("apple_subject_id")
+  googleSubjectId  String?   @unique @map("google_subject_id")
+  displayName      String    @default("Aura User") @map("display_name")
   email            String?   @unique
   passwordHash     String?   @map("password_hash")
   createdAt        DateTime  @default(now()) @map("created_at")

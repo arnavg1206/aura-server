@@ -3,7 +3,7 @@ import { verifyToken } from '../lib/jwt';
 
 export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
   const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
+  if (!header?.startsWith('Bearer ') || header.length <= 7) {
     return reply.code(401).send({ error: 'Unauthorized' });
   }
   try {

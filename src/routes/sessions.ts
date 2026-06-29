@@ -9,6 +9,24 @@ export async function sessionRoutes(app: FastifyInstance, prisma: PrismaClient) 
     { preHandler: authenticate },
     async (req, reply) => {
       const { sessions } = req.body;
+
+      if (!Array.isArray(sessions) || sessions.length === 0) {
+        return reply.code(400).send({ error: 'sessions must be a non-empty array' });
+      }
+      if (sessions.length > 1000) {
+        return reply.code(400).send({ error: 'Max 1000 sessions per sync' });
+      }
+
+      for (const s of sessions) {
+        if (!Number.isInteger(s.durationSeconds) || s.durationSeconds <= 0 || s.durationSeconds > 86400) {
+          return reply.code(400).send({ error: 'durationSeconds must be between 1 and 86400' });
+        }
+        const d = new Date(s.date);
+        if (isNaN(d.getTime())) {
+          return reply.code(400).send({ error: `Invalid date: ${s.date}` });
+        }
+      }
+
       await prisma.syncedSession.createMany({
         data: sessions.map(s => ({
           userId: req.userID,
