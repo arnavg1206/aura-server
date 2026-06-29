@@ -1,5 +1,5 @@
 name: aura-server
-region: nyc
+region: ind
 
 databases:
 - engine: PG
