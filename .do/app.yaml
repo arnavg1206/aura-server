@@ -1,0 +1,36 @@
+name: aura-server
+region: nyc
+
+databases:
+- engine: PG
+  name: aura-db
+  num_nodes: 1
+  version: "16"
+
+services:
+- name: api
+  github:
+    repo: arnavg1206/aura-server
+    branch: main
+    deploy_on_push: true
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  build_command: npm install && npx prisma generate && npm run build
+  run_command: npx prisma migrate deploy && node dist/index.js
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${aura-db.DATABASE_URL}
+  - key: JWT_SECRET
+    scope: RUN_TIME
+    value: "f221f01791ffb495f7bd110c41699cbd5e20f155a9a1cbc1954c307028c57317"
+  - key: APPLE_APP_ID
+    scope: RUN_TIME
+    value: "com.arnavgupta.meditationapp"
+  - key: GOOGLE_CLIENT_ID
+    scope: RUN_TIME
+    value: "1034931504318-sba0kquv82mrt5o8t9bcebn1s2g5v1h7.apps.googleusercontent.com"
+  - key: NODE_ENV
+    scope: RUN_TIME
+    value: "production"
